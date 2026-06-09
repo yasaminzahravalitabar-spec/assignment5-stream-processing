@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -7,7 +8,7 @@ from pyspark.sql.types import StringType, StructField, StructType, TimestampType
 
 BASE_DIR = Path(__file__).resolve().parent
 STREAM_INPUT_DIR = str(BASE_DIR / "data" / "stream_input")
-CHECKPOINT_DIR = str(BASE_DIR / "checkpoints" / "hospital_patient_monitoring")
+CHECKPOINT_DIR = str(BASE_DIR / "checkpoints" / f"hospital_patient_monitoring_{int(time.time())}")
 
 
 def main():
@@ -15,6 +16,7 @@ def main():
         SparkSession.builder
         .appName("Hospital Patient Monitoring - Sustained Heart Rate Alerts")
         .master("local[*]")
+        .config("spark.sql.shuffle.partitions", "4")
         .getOrCreate()
     )
 
@@ -68,7 +70,7 @@ def main():
 
         print(f"\n========== Batch {batch_id}: Sustained Heart Rate Check ==========")
 
-        current_elevated_windows = {}
+        latest_elevated_windows = dict(previous_elevated_windows)
         alert_count = 0
 
         for row in rows:
@@ -77,8 +79,7 @@ def main():
             window_end = row["window_end"]
             avg_heart_rate = row["avg_heart_rate"]
 
-            current_elevated_windows[patient_id] = window_end
-            previous_window_end = previous_elevated_windows.get(patient_id)
+            previous_window_end = latest_elevated_windows.get(patient_id)
 
             if previous_window_end == window_start:
                 alert_count += 1
@@ -87,13 +88,16 @@ def main():
                     f"Patient {patient_id} had sustained elevated heart rate "
                     f"across two consecutive 2-minute windows. "
                     f"Current window: {window_start} to {window_end}, "
-                    f"average HR: {avg_heart_rate} bpm"
+                    f"average HR: {avg_heart_rate} bpm",
+                    flush=True,
                 )
 
-        if alert_count == 0:
-            print("No sustained clinical alerts in this batch.")
+            latest_elevated_windows[patient_id] = window_end
 
-        previous_elevated_windows = current_elevated_windows
+        if alert_count == 0:
+            print("No sustained clinical alerts in this batch.", flush=True)
+
+        previous_elevated_windows = latest_elevated_windows
 
     query = (
         elevated_windows.writeStream
@@ -104,10 +108,10 @@ def main():
         .start()
     )
 
-    print("Streaming job started.")
-    print(f"Watching folder: {STREAM_INPUT_DIR}")
-    print("Copy CSV files into that folder to simulate the patient monitor stream.")
-    print("Press Ctrl+C to stop.")
+    print("Streaming job started.", flush=True)
+    print(f"Watching folder: {STREAM_INPUT_DIR}", flush=True)
+    print("Copy CSV files into that folder to simulate the patient monitor stream.", flush=True)
+    print("Press Ctrl+C to stop.", flush=True)
 
     query.awaitTermination()
 
