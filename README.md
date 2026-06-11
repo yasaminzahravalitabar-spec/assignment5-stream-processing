@@ -1,4 +1,4 @@
-# Real-Time Stream Processing Assignment
+# Yasaminzahra Valitabar 101001242 - Assignment 5
 
 **Student:** Yasaminzahra Valitabar  
 **Student ID:** 101001242  
@@ -42,6 +42,8 @@ This pipeline requires state in three places:
 
 `requirements.txt` lists the Python dependency.
 
+`screenshot.png` shows the alert output firing.
+
 ## Input Data Format
 
 The stream expects CSV files with this format:
@@ -62,10 +64,11 @@ The important columns are:
 
 ## How to Run
 
-These commands should be run from the project folder:
+Clone the GitHub repository and run these commands from the project folder:
 
 ```powershell
-cd "C:\Users\yasam\OneDrive\Desktop\assignment5-stream-processing"
+git clone https://github.com/yasaminzahravalitabar-spec/assignment5-stream-processing.git
+cd assignment5-stream-processing
 ```
 
 Create and activate a virtual environment:
@@ -81,6 +84,12 @@ Install PySpark:
 pip install -r requirements.txt
 ```
 
+Clear any previous streamed files before starting a fresh demo:
+
+```powershell
+Remove-Item .\data\stream_input\*.csv -ErrorAction SilentlyContinue
+```
+
 Start the Spark streaming job in the first terminal:
 
 ```powershell
@@ -90,7 +99,7 @@ python hospital_patient_monitoring.py
 Open a second terminal, activate the same environment, and feed the sample files into the stream:
 
 ```powershell
-cd "C:\Users\yasam\OneDrive\Desktop\assignment5-stream-processing"
+cd assignment5-stream-processing
 .\.venv\Scripts\Activate.ps1
 python feed_stream.py
 ```
@@ -115,7 +124,9 @@ With the included sample data, patient `P002` should trigger an alert after the 
 
 ## Screenshot to Include
 
-After running the project, take a screenshot of the first terminal when the alert appears. The screenshot should show the Spark console output containing a line like:
+The included `screenshot.png` shows the Spark console alert output firing. The expected console line is:
+
+![Spark clinical alert output](screenshot.png)
 
 ```text
 CLINICAL ALERT | Patient P002 had sustained elevated heart rate across two consecutive 2-minute windows.

@@ -3,15 +3,17 @@ import time
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, StructField, StructType, TimestampType, DoubleType
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType, TimestampType
 
 
 BASE_DIR = Path(__file__).resolve().parent
-STREAM_INPUT_DIR = str(BASE_DIR / "data" / "stream_input")
-CHECKPOINT_DIR = str(BASE_DIR / "checkpoints" / f"hospital_patient_monitoring_{int(time.time())}")
+STREAM_INPUT_DIR = BASE_DIR / "data" / "stream_input"
+CHECKPOINT_DIR = BASE_DIR / "checkpoints" / f"hospital_patient_monitoring_{int(time.time())}"
 
 
 def main():
+    STREAM_INPUT_DIR.mkdir(parents=True, exist_ok=True)
+
     spark = (
         SparkSession.builder
         .appName("Hospital Patient Monitoring - Sustained Heart Rate Alerts")
@@ -35,7 +37,7 @@ def main():
         .schema(schema)
         .option("header", "true")
         .option("maxFilesPerTrigger", 1)
-        .csv(STREAM_INPUT_DIR)
+        .csv(str(STREAM_INPUT_DIR))
     )
 
     windowed_average = (
@@ -103,7 +105,7 @@ def main():
         elevated_windows.writeStream
         .outputMode("update")
         .foreachBatch(print_alerts)
-        .option("checkpointLocation", CHECKPOINT_DIR)
+        .option("checkpointLocation", str(CHECKPOINT_DIR))
         .trigger(processingTime="10 seconds")
         .start()
     )
